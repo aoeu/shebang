@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+threshold=10
+lock="/tmp/$(basename $0)"
+battery='/sys/class/power_supply/BAT0'
+
+function main() {
+	s=$(batteryStatus)
+	test "Charging" == $s && test -f $lock && rm $lock
+	test "Discharging" != $s && exit 0
+	p=$(remainingPercentOfBattery)
+	test $p -le $threshold && DISPLAY=:0.0 /usr/bin/env i3-nagbar -m "$p% battery remaining." && touch $lock
+}
+
+function batteryStatus() {
+	cat "$battery/status"
+}
+
+function remainingPercentOfBattery() {
+	echo "$(( $(energyNow) * 100 / $(energyWhenFull) ))"
+}
+
+function energyNow() {
+	cat "$battery/energy_now"
+}
+
+function energyWhenFull() {
+	cat "$battery/energy_full_design"
+}
+
+main
